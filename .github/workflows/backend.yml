@@ -22,9 +22,17 @@ jobs:
       - run: npm run test -- --coverage
       - run: npm run build
       
-      - name: 'Upload Artifact'
+      - name: 'Upload Coverage Artifact'
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: coverage
           path: myapp/backend/coverage
+          retention-days: 3
+
+      - name: 'Upload Dist Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: myapp/backend/dist/index.js
           retention-days: 3
