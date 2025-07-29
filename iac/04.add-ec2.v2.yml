@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "EC2 RHEL 0X"
+
+Parameters:
+  Env:
+    Description: Environment
+    Type: String
+    Default: "tmax"
+    AllowedValues:
+      - "tmax"
+      - "dev"
+      - "poc"
+
+  System:
+    Description: System name
+    Type: String
+    Default: office-ondxc
+
+  EC2ID:
+    Description: EC2 ID
+    Type: String
+    Default: "0X"
+
+Mappings:
+  EnvMapping:
+
+    dev:
+      Octet: 30
+      imageidA: ami-0173da5aef01bcf08 # Openframe Builded AMI
+      InstanceTypeA: r7a.xlarge
+    poc:
+      Octet: 40
+      imageidA: ami-0173da5aef01bcf08 # Openframe Builded AMI
+      InstanceTypeA: r7a.medium
+    tmax:
+      Octet: 105
+      imageidA: ami-0173da5aef01bcf08 # Openframe Builded AMI
+      InstanceTypeA: r7a.xlarge
+
+Resources:
+
+# ------------------------------------------------------------#
+#  EC2 Instance
+# ------------------------------------------------------------#
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [EnvMapping, !Ref Env, imageidA]
+      InstanceType: !FindInMap [EnvMapping, !Ref Env, InstanceTypeA]
+      CpuOptions:
+        CoreCount: 2
+        ThreadsPerCore: 1
+      UserData:
+        Fn::Base64: !Sub |
+            #!/bin/bash -x
+
+            function handle_error {
+                echo "Error occurred in block: $1"
+                return 0
+            }
+
+            # Environmental Value
+            {
+                cd /tmp
+                echo "export CUSTENV=${Env}" >> /etc/profile
+            } || handle_error "Environment Setup"
+
+            # Hostname
+            {
+                # Extract last 2 digits from EC2ID
+                hostnamectl set-hostname office-pj-${EC2ID}
+                echo 'preserve_hostname: true' >> /etc/cloud/cloud.cfg
+            } || handle_error "Hostname Setup"
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "false"
+          DeviceIndex: "0"
+          SubnetId: 
+            Fn::ImportValue:
+              'Fn::Sub': "${Env}-${System}-ec2-a"
+          GroupSet:
+            - Fn::ImportValue:
+                'Fn::Sub': "${Env}-${System}-sg"
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1 # Root Volume
+          Ebs:
+            DeleteOnTermination: true
+            VolumeSize: 100
+            VolumeType: gp3
+        - DeviceName: /dev/sdb # Data Volume
+          Ebs:
+            DeleteOnTermination: true
+            VolumeSize: 1500
+            VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value: !Sub "${Env}-${System}-${EC2ID}"
+      IamInstanceProfile:
+        Fn::ImportValue:
+          'Fn::Sub': "${Env}-${System}-instanceprofile"
+
+Outputs:
+  Instance:
+    Value: !Ref Instance
+    Export:
+      Name: !Sub "${Env}-${System}-${EC2ID}"
