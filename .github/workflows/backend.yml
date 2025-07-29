@@ -16,9 +16,15 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: 16.20.2
+          node-version: 16.X
       
       - run: npm ci
       - run: npm run test
       - run: npm run build
 
+    name: 'Upload Artfact'
+    uses: actions/upload-artifact@v4
+    with:
+      name: coverage
+      path: myapp/backend/coverage
+      retention-days: 3
