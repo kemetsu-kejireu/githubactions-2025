@@ -21,10 +21,10 @@ jobs:
       - run: npm ci
       - run: npm run test -- --coverage
       - run: npm run build
-
-    name: 'Upload Artfact'
-    uses: actions/upload-artifact@v4
-    with:
-      name: coverage
-      path: myapp/backend/coverage
-      retention-days: 3
+      
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: myapp/backend/coverage
+          retention-days: 3
